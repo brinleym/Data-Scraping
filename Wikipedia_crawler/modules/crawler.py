@@ -178,8 +178,9 @@ class Query:
 			return "Cannot return invalid url."
 
 	def validateSeed(self):
-		response = requests.get(self.seed)
 		print("Validating " + self.seed + " ...")
+		# TODO: write code to filter out any .pdf urls
+		response = requests.get(self.seed)
 		if(response.status_code == requests.codes.ok):
 			print "Seed valid!"
 			return True
