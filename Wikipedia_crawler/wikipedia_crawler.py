@@ -10,7 +10,7 @@ class Request:
 		self.url = target_url
 		self.plain_text = self.makeRequest(self.url)
 		self.soup = self.parseHtml(self.plain_text)
-
+		
 	def makeRequest(self, url):
 		try:
 			response = requests.get(url) # make GET request
@@ -43,15 +43,15 @@ class Scraper:
 
 	def scrape_page(self):
 		print "Scraping non-Wiki page.."
-		title = self.soup.find("h1") # find first h1 tag
+		title = self.soup.find("h1") # find first h1 tag and store content in var
+		if title is None:
+			title = "No title found."
+		else:
+			title = title.string
 		url = self.url
 		content = ""
 
 		summary = pageSumm(url, title, content) # instantiate page summary object
-
-		print summary.url
-		print summary.title
-		print summary.content
 
 		return summary 
 
@@ -65,29 +65,38 @@ class Crawler:
 
 	def crawl_rec(self):
 
-		if len(self.path) == 0: # base case: stop crawling
+		if(len(self.path) == 0): # base case: stop crawling
 			self.printResults()
 			return "All done"
 
 		# get url 
 		url = self.path.pop()
 
-		# make request
-		newRequest = Request(url)
+		if(self.validateUrl(url)): # if url is valid..make request for data
 
-		# store response (html goop)
-		responseText = newRequest.soup
+			# make request
+			newRequest = Request(url)
 
-		# parse response
-		pageScraper = Scraper(url, responseText) # instantiate scraper
-		self.results.append(pageScraper.scrape_page()) # append pageSumm obj returned by scraper to results list
+			# store response (html goop)
+			responseText = newRequest.soup
+
+			# parse response
+			pageScraper = Scraper(url, responseText) # instantiate scraper
+			self.results.append(pageScraper.scrape_page()) # append pageSumm obj returned by scraper to results list
 
 		self.crawl_rec() # keep crawling
 
-	def printResults():
+	def validateUrl(self, url):
+		print("Validating " + url + " ...")
+		html = re.compile(".html")
+		return html.search(url) # returns boolean: if/if not url points html page
+
+	def printResults(self):
 
 		for item in self.results:
-			print item
+			print("Url: " + item.getUrl())
+			print("Title: " + item.getTitle())
+			print("Preview: " + item.getContent())
 
 class pageSumm:
 
@@ -95,6 +104,18 @@ class pageSumm:
 		self.url = url
 		self.title = title
 		self.content = content
+
+	def getUrl(self):
+
+		return self.url
+
+	def getTitle(self):
+
+		return self.title
+
+	def getContent(self):
+
+		return self.content
 
 
 

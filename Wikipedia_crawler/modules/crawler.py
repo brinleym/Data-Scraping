@@ -61,7 +61,6 @@ class Parser:
 	def isWikiPage(self, url):
 		wiki = re.compile("wiki")
 		found = wiki.search(url)
-		print found
 		if found:
 			print "Url is a wiki page!"
 			return True
@@ -179,7 +178,6 @@ class Query:
 
 	def validateSeed(self):
 		print("Validating " + self.seed + " ...")
-		# TODO: write code to filter out any .pdf urls
 		response = requests.get(self.seed)
 		if(response.status_code == requests.codes.ok):
 			print "Seed valid!"
