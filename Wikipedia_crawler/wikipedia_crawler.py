@@ -17,7 +17,7 @@ class Request:
 		except ConnectionError as error:
 			print error
 			print "Page not found. Returning false.."
-			return False
+			return False # this throws error
 
 		return response.text # return plain text 
 
@@ -43,32 +43,37 @@ class Scraper:
 
 	def scrape_page(self):
 		print "Scraping non-Wiki page.."
+		
+		url = self.url
+		title = self.get_header()
+		excerpt = self.get_excerpt()
+
+		summary = pageSumm(url, title, excerpt) # instantiate page summary object
+
+		return summary 
+
+	def get_header(self):
 		title = self.soup.find("h1") # find first h1 tag and store header text in var
 		if title is None:
 			title = "No title found."
 		else:
 			title = title.get_text()
 
-		url = self.url
-		p_list = self.soup.find_all("p") # find all p tags and store in list
+		return title
 
-		content = ""
+	def get_excerpt(self):
 
-		if p_list is None:
-			content = "No preview available."
-		else:
-			for item in p_list:
+		excerpt = "No excerpt available."
+		all_p_tags = p_list = self.soup.find_all("p") # find all p tags and store in list
+		if all_p_tags is not None:
+			for item in all_p_tags:
 				text = item.get_text()
 				if len(text) >= 100:
-					print text
-					content = text
+					excerpt = text
 					break
 
-		#print("Preview: " + content)
+		return excerpt
 
-		summary = pageSumm(url, title, content) # instantiate page summary object
-
-		return summary 
 
 
 class Crawler: 
@@ -111,14 +116,14 @@ class Crawler:
 		for item in self.results:
 			print("Url: " + item.getUrl())
 			print("Title: " + item.getTitle())
-			print("Preview: " + item.getContent())
+			print("Excerpt: " + item.getExcerpt())
 
 class pageSumm:
 
-	def __init__(self, url, title, content):
+	def __init__(self, url, title, exerpt):
 		self.url = url
 		self.title = title
-		self.content = content
+		self.exerpt = exerpt
 
 	def getUrl(self):
 
@@ -128,9 +133,9 @@ class pageSumm:
 
 		return self.title
 
-	def getContent(self):
+	def getExcerpt(self):
 
-		return self.content
+		return self.exerpt
 
 
 
