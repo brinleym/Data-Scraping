@@ -43,13 +43,28 @@ class Scraper:
 
 	def scrape_page(self):
 		print "Scraping non-Wiki page.."
-		title = self.soup.find("h1") # find first h1 tag and store content in var
+		title = self.soup.find("h1") # find first h1 tag and store header text in var
 		if title is None:
 			title = "No title found."
 		else:
-			title = title.string
+			title = title.get_text()
+
 		url = self.url
+		p_list = self.soup.find_all("p") # find all p tags and store in list
+
 		content = ""
+
+		if p_list is None:
+			content = "No preview available."
+		else:
+			for item in p_list:
+				text = item.get_text()
+				if len(text) >= 100:
+					print text
+					content = text
+					break
+
+		#print("Preview: " + content)
 
 		summary = pageSumm(url, title, content) # instantiate page summary object
 
