@@ -119,8 +119,8 @@ class Results:
 		self.results = []
 		self.filename = query + "_results.txt"
 
-	def getResults(self, url_list):
-		self.results = url_list
+	def getResults(self, results_list):
+		self.results = results_list
 
 	def printResults(self):
 
@@ -132,7 +132,8 @@ class Results:
 		target_file = open(self.filename, "w")
 
 		for item in self.results:
-			target_file.write(item + "\n")
+			target_file.write(item)
+			target_file.write("\n")
 
 		target_file.close()
 
@@ -174,7 +175,7 @@ class Query:
 		if(self.seedValid):
 			return self.baseUrl + self.query
 		else:
-			return "Cannot return invalid url."
+			return None
 
 	def validateSeed(self):
 		print("Validating " + self.seed + " ...")

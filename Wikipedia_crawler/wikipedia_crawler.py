@@ -3,6 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 from requests.exceptions import ConnectionError
 from modules import Query
+from modules import Results
 
 class Request:
 
@@ -16,12 +17,16 @@ class Request:
 			response = requests.get(url) # make GET request
 		except ConnectionError as error:
 			print error
-			print "Page not found. Returning false.."
-			return False # this throws error
+			print "Page not found. Bypassing page.."
+			return None
 
 		return response.text # return plain text 
 
 	def parseHtml(self, text):
+
+		# corner case: request failed, no response text to parse
+		if self.plain_text is None: 
+			return None
 
 		html_soup = BeautifulSoup(text, "html.parser")
 		return html_soup
@@ -48,12 +53,15 @@ class Scraper:
 		title = self.get_header()
 		excerpt = self.get_excerpt()
 
-		summary = pageSumm(url, title, excerpt) # instantiate page summary object
+		# instantiate pageSumm
+		summary = pageSumm(url, title, excerpt) 
 
 		return summary 
 
 	def get_header(self):
-		title = self.soup.find("h1") # find first h1 tag and store header text in var
+
+		# find first h1 tag
+		title = self.soup.find("h1") 
 		if title is None:
 			title = "No title found."
 		else:
@@ -64,11 +72,14 @@ class Scraper:
 	def get_excerpt(self):
 
 		excerpt = "No excerpt available."
-		all_p_tags = p_list = self.soup.find_all("p") # find all p tags and store in list
+
+		# find all p tags and store in list
+		all_p_tags = p_list = self.soup.find_all("p") 
 		if all_p_tags is not None:
 			for item in all_p_tags:
 				text = item.get_text()
-				if len(text) >= 100:
+				length = len(text)
+				if length >= 100 and length < 500:
 					excerpt = text
 					break
 
@@ -79,37 +90,49 @@ class Scraper:
 class Crawler: 
 
 	def __init__(self, seed, path):
-		self.seed = seed # wikipedia url
-		self.path = path
-		self.results = [] # initialize empty list to hold results
+		# wikipedia page matching user query
+		self.seed = seed 
+		# list of wikipedia reference links to crawl
+		self.path = path 
+		# list of pageSumm's
+		self.results = [] 
 
 	def crawl_rec(self):
 
-		if(len(self.path) == 0): # base case: stop crawling
+		# base case: if path list is empty, stop crawling
+		if(len(self.path) == 0): 
 			self.printResults()
-			return "All done"
+			return True # done crawling
 
 		# get url 
 		url = self.path.pop()
 
-		if(self.validateUrl(url)): # if url is valid..make request for data
+ 		# if url is valid, make request for data
+		if(self.validateUrl(url)):
 
 			# make request
 			newRequest = Request(url)
 
-			# store response (html goop)
+			# store response (Beautiful soup object)
 			responseText = newRequest.soup
 
-			# parse response
-			pageScraper = Scraper(url, responseText) # instantiate scraper
-			self.results.append(pageScraper.scrape_page()) # append pageSumm obj returned by scraper to results list
+			# if request succeeded, parse response
+			if(responseText is not None): 
 
-		self.crawl_rec() # keep crawling
+				# instantiate scraper
+				pageScraper = Scraper(url, responseText) 
 
+				# append pageSumm obj returned by scraper to results list
+				self.results.append(pageScraper.scrape_page())
+
+		# keep crawling
+		self.crawl_rec() 
+
+	# returns boolean: if/if not url points to .html page
 	def validateUrl(self, url):
 		print("Validating " + url + " ...")
 		html = re.compile(".html")
-		return html.search(url) # returns boolean: if/if not url points html page
+		return html.search(url) 
 
 	def printResults(self):
 
@@ -117,6 +140,7 @@ class Crawler:
 			print("Url: " + item.getUrl())
 			print("Title: " + item.getTitle())
 			print("Excerpt: " + item.getExcerpt())
+
 
 class pageSumm:
 
@@ -139,15 +163,52 @@ class pageSumm:
 
 
 
-
+# get user query
 myQuery = Query()
-myRequest = Request(myQuery.getSeed()) # instantiate request object
 
-responseText = myRequest.soup
-myWikiScraper = Scraper(myRequest.url, responseText) # instantiate new scraper object
-myWikiScraper.scrape_wiki_references() # tell scraper to parse html stored in soup var
+# getSeed() returns Wikipedia url matching user query
+# if Wikipedia page exists, returns url
+# if page does not exist, returns None
+wiki_url = myQuery.getSeed()
 
-myCrawler = Crawler(myWikiScraper.url, myWikiScraper.wiki_links) # instantiate new crawler object, giving it link path scraped from Wikipedia references
-myCrawler.crawl_rec() # start crawling
+if wiki_url is not None:
+
+	# make request with Request object
+	myRequest = Request(wiki_url) 
+
+	# get response
+	responseText = myRequest.soup 
+
+	# if request was success 
+	if responseText is not None:
+		
+		# instantiate new Scraper object to scrape wikipedia page
+		myWikiScraper = Scraper(myRequest.url, responseText) 
+		
+		# ask scraper to scrape external links in wikipedia page
+		myWikiScraper.scrape_wiki_references()
+
+		# if scraper has found at least one external link on wikipedia page
+		if len(myWikiScraper.wiki_links) > 0:
+
+			# instantiate new Crawler object 
+			# crawler's seed is wikipedia page
+			# crawler's path is all external links scraped from wikipedia page
+			myCrawler = Crawler(myWikiScraper.url, myWikiScraper.wiki_links)
+
+			# start crawling
+			myCrawler.crawl_rec() 
+
+
+# crawling is over 
+
+# make new Results object
+myResults = Results(myQuery.query, myQuery.seed)
+
+# get results from crawler
+myResults.getResults(myCrawler.results)
+
+# write results to .txt file
+myResults.writeResults() # throws error, cannot write objects to text file
 
 
